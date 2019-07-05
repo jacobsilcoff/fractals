@@ -7,7 +7,7 @@ let start;
 let minSlider,maxSlider;
 
 function setup() {
-	createCanvas(750, 750);
+	createCanvas(windowWidth, windowHeight);
 	pixelDensity(1);
 	colorMode(HSB,100);
 }
