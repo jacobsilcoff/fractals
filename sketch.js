@@ -1,7 +1,20 @@
-let minval = -.5;
-let maxval = .5;
+let current_AR = {
+	max_x: 2.5,
+	max_y: 2.5,
+	min_x: -2.5,
+	min_y: -2.5
+};
 
-let max_x = 2.5, max_y = 2.5, min_x = -2.5, min_y = -2.5;
+let desired_AR = {
+	max_x: 2.5,
+	max_y: 2.5,
+	min_x: -2.5,
+	min_y: -2.5
+}
+
+const TIME = 10000;
+let start_time = (new Date()).getTime();
+
 let start;
 
 let minSlider,maxSlider;
@@ -14,7 +27,6 @@ function setup() {
 
 function draw() {
 	draw_histo();
-	noLoop();
 }
 
 function hsv_to_rgb(h, s, v) {
@@ -39,6 +51,24 @@ function hsv_to_rgb(h, s, v) {
 }
 
 function draw_histo() {
+	let ar;
+	let d = new Date();
+	if (d.getTime() - start_time < TIME) {
+		ar = {
+			min_x: map(d.getTime() - start_time, 0, TIME, current_AR.min_x, desired_AR.min_x),
+			max_x: map(d.getTime() - start_time, 0, TIME, current_AR.max_x, desired_AR.max_x),
+			min_y: map(d.getTime() - start_time, 0, TIME, current_AR.min_y, desired_AR.min_y),
+			max_y: map(d.getTime() - start_time, 0, TIME, current_AR.max_y, desired_AR.max_y)
+		};
+	} else {
+		current_AR = {
+			min_x: desired_AR.min_x,
+			max_x: desired_AR.max_x,
+			min_y: desired_AR.min_y,
+			max_y: desired_AR.max_y
+		};
+		ar = current_AR;
+	}
 
 	let maxiterations = 100;
 	let iteration_count = [];
@@ -47,8 +77,9 @@ function draw_histo() {
 	//counts the number of iterations for each pixel
 	for (let x = 0; x < width; x++) {
 		for (let y = 0; y < height; y++) {
-			let a = map(x,0,width,min_x,max_x);
-			let b = map(y,0,height,min_y,max_y);
+
+			let a = map(x,0,width,ar.min_x,ar.max_x);
+			let b = map(y,0,height,ar.min_y,ar.max_y);
 			let ca = a;
 			let cb = b;
 
@@ -74,9 +105,6 @@ function draw_histo() {
 		}
 	}
 	let total = num_iterations_per_pixel.reduce((t,c,i,arr) => t + c, 0);
-
-	console.log(num_iterations_per_pixel);
-	console.log(total);
 	let hue = new Array(width * height).fill(0.0);
 	for (let x = 0; x < width; x++) {
 		for (let y = 0; y < height; y++) {
@@ -97,46 +125,6 @@ function draw_histo() {
 	updatePixels();
 }
 
-
-function draw_black_and_white() {
-		let maxiterations = 100;
-		loadPixels();
-		for (let x = 0; x < width; x++) {
-			for (let y = 0; y < height; y++) {
-				let a = map(x,0,width,minSlider.value(),maxSlider.value());
-				let b = map(y,0,height,minSlider.value(),maxSlider.value());
-				let ca = a;
-				let cb = b;
-
-				let n = 0;
-				while (n < maxiterations) {
-					let aa = a*a - b*b;
-					let bb = 2 * a * b;
-
-					a = aa + ca;
-					b = bb + cb;
-					if (abs(a + b) > 16) {
-						break;
-					}
-					n++;
-				}
-
-				let bright = map(n,0,maxiterations,0,255);
-				if (n === maxiterations) {
-					bright = 0;
-				}
-
-				//Draw pixels to screen
-				let pix = (x + y * width) * 4;
-				pixels[pix + 0] = bright;
-				pixels[pix + 1] = bright;
-				pixels[pix + 2] = bright;
-				pixels[pix + 3] = 255;
-			}
-		}
-		updatePixels();
-}
-
 function mousePressed() {
 	start = {x: mouseX, y: mouseY};
 }
@@ -144,16 +132,15 @@ function mousePressed() {
 function mouseReleased() {
 	let ll = {x: min(start.x, mouseX), y: min(start.y, mouseY)};
 	let ur = {x: max(start.x, mouseX), y: max(start.y, mouseY)};
-	let new_min_x = map(ll.x, 0,width, min_x, max_x);
-	let new_max_x = map(ur.x, 0,width, min_x, max_x);
-	let new_min_y = map(ll.y, 0,height, min_y, max_y);
-	let new_max_y = map(ur.y, 0,height, min_y, max_y);
+	let new_min_x = map(ll.x, 0,width, current_AR.min_x, current_AR.max_x);
+	let new_max_x = map(ur.x, 0,width, current_AR.min_x, current_AR.max_x);
+	let new_min_y = map(ll.y, 0,height, current_AR.min_y, current_AR.max_y);
+	let new_max_y = map(ur.y, 0,height, current_AR.min_y, current_AR.max_y);
 
-	max_x = new_max_x;
-	min_x = new_min_x;
-	max_y = new_max_y;
-	min_y = new_min_y;
+	desired_AR.max_x = new_max_x;
+	desired_AR.min_x = new_min_x;
+	desired_AR.max_y = new_max_y;
+	desired_AR.min_y = new_min_y;
 
-
-	draw_histo();
+	start_time = (new Date()).getTime();
 }
